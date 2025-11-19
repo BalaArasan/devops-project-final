@@ -2,15 +2,11 @@ pipeline {
     agent any
 
     environment {
-        // these are injected by Jenkins when you add credentials with these IDs
-        SSH_KEY = credentials('ec2-ssh-key')
-        DH_CRED = credentials('dockerhub-creds')
-        DOCKERHUB_USER = "bala1224"
-        DOCKERHUB_REPO = "dev"
-        EC2_HOST = "ubuntu@43.204.234.83"
+        DH_USER = credentials('dockerhub-creds')
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -21,33 +17,30 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    echo "$DH_CRED_PSW" | docker login -u "$DH_CRED_USR" --password-stdin
-                    docker build -t ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:latest .
-                    docker push ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:latest
+                    echo "$DH_USER_PSW" | docker login -u "$DH_USER_USR" --password-stdin
+                    docker build -t bala1224/dev:latest .
+                    docker push bala1224/dev:latest
                 '''
             }
         }
 
         stage('Deploy to EC2') {
             steps {
-                // use sshagent so Jenkins injects the private key properly
-                sshagent(credentials: ['ec2-ssh-key']) {
-                    sh '''
-                        set -e
-                        ssh -o StrictHostKeyChecking=no ${EC2_HOST} <<'REMOTE'
-                            set -e
+                sshagent(['ec2-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@43.204.234.83 '
                             echo "Pulling latest Docker image..."
-                            docker pull ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:latest
+                            docker pull bala1224/dev:latest
 
-                            echo "Stopping old container (if exists)..."
+                            echo "Stopping old container..."
                             docker rm -f devops-react-app || true
 
                             echo "Starting new container..."
-                            docker run -d -p 80:80 --name devops-react-app ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:latest
+                            docker run -d -p 80:80 --name devops-react-app bala1224/dev:latest
 
-                            echo "Deployment finished on EC2."
-                        REMOTE
-                    '''
+                            echo "Deployment complete!"
+                        '
+                    """
                 }
             }
         }
@@ -55,7 +48,7 @@ pipeline {
 
     post {
         success {
-            echo "Build and Deploy SUCCESSFUL!"
+            echo "Build & Deploy Successful!"
         }
         failure {
             echo "Build or Deploy FAILED!"
