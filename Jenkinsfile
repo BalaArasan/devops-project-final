@@ -1,10 +1,12 @@
 pipeline {
-    agent { label 'docker-agent' }
+    agent any
 
     environment {
-        DEV_REPO = "balaarasan/dev"
-        PROD_REPO = "balaarasan/prod"
-        BRANCH = "${env.GIT_BRANCH}"
+        DOCKERHUB_USER = "bala1224"
+        DOCKERHUB_REPO = "dev"
+        SSH_KEY = credentials('ec2-ssh-key')
+        DH_CRED = credentials('dockerhub-creds')
+        EC2_HOST = "ubuntu@43.204.234.83"
     }
 
     stages {
@@ -14,38 +16,42 @@ pipeline {
             }
         }
 
-        stage('Build Image') {
+        stage('Build & Push Docker Image (AMD64)') {
             steps {
-                sh './build.sh'
+                sh '''
+                    echo "$DH_CRED_PSW" | docker login -u "$DH_CRED_USR" --password-stdin
+
+                    docker buildx create --use --name builder || true
+
+                    docker buildx build \
+                      --platform linux/amd64 \
+                      -t ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:latest \
+                      --push .
+                '''
             }
         }
 
-        stage('Push Image') {
-            when {
-                anyOf {
-                    branch 'dev'
-                    branch 'master'
-                }
-            }
+        stage('Deploy to EC2') {
             steps {
-                script {
-                    if (BRANCH.contains('dev')) {
-                        sh "docker push $DEV_REPO:latest"
-                    } else if (BRANCH.contains('master')) {
-                        sh "docker push $PROD_REPO:latest"
-                    }
-                }
-            }
-        }
+                sh '''
+                    chmod 600 $SSH_KEY
 
-        stage('Deploy to Server') {
-            when {
-                branch 'master'
-            }
-            steps {
-                sh './deploy.sh'
+                    ssh -o StrictHostKeyChecking=no -i $SSH_KEY $EC2_HOST '
+                        docker pull ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:latest
+                        docker rm -f myapp || true
+                        docker run -d --name myapp -p 80:80 ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:latest
+                    '
+                '''
             }
         }
     }
-}
 
+    post {
+        success {
+            echo "Deployment done successfully!"
+        }
+        failure {
+            echo "Build or Deploy FAILED!"
+        }
+    }
+}
