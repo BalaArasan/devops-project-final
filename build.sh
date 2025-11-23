@@ -1,17 +1,16 @@
 #!/bin/bash
+set -e
 
-# Variables
-IMAGE_NAME="devops-final-app"
-DEV_REPO="balaarasan/dev-final"
 TAG=$(date +%Y%m%d%H%M)
 
 echo "🔧 Building Docker image..."
-docker build -t $IMAGE_NAME:$TAG .
+docker build -t balaarasan/dev-final:$TAG .
 
-echo "🔧 Tagging image..."
-docker tag $IMAGE_NAME:$TAG $DEV_REPO:$TAG
+echo "🔧 Tagging latest..."
+docker tag balaarasan/dev-final:$TAG balaarasan/dev-final:latest
 
-echo "🚀 Pushing to Docker Hub DEV repo..."
-docker push $DEV_REPO:$TAG
+echo "🚀 Pushing to Docker Hub..."
+docker push balaarasan/dev-final:$TAG
+docker push balaarasan/dev-final:latest
 
-echo "✅ Build complete. Dev image: $DEV_REPO:$TAG"
+echo "✅ Build complete. Image: balaarasan/dev-final:$TAG"
