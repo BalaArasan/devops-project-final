@@ -2,63 +2,62 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_DEV_REPO = "balaarasan12/dev-final"
-        DOCKER_PROD_REPO = "balaarasan12/prod-final"
-        IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+        DEV_REPO = "balaarasan12/dev-final"
+        PROD_REPO = "balaarasan12/prod-final"
     }
 
     stages {
 
-        stage('Build Docker Image') {
+        stage('Checkout') {
             steps {
-                sh '''
-                echo "⏳ BUILD STAGE STARTED"
-                chmod +x build.sh
-                ./build.sh
-                '''
+                git url: 'https://github.com/BalaArasan/devops-project-final.git'
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Build Docker Image') {
             steps {
-                script {
-                    if (env.BRANCH_NAME == "dev") {
-                        sh """
-                        echo "🚀 Pushing DEV image..."
-                        docker tag devops-final-app:${IMAGE_TAG} ${DOCKER_DEV_REPO}:${IMAGE_TAG}
-                        docker push ${DOCKER_DEV_REPO}:${IMAGE_TAG}
-                        echo "DEV push complete."
-                        """
-                    } else if (env.BRANCH_NAME == "main") {
-                        sh """
-                        echo "🚀 Pushing PROD image..."
-                        docker tag devops-final-app:${IMAGE_TAG} ${DOCKER_PROD_REPO}:${IMAGE_TAG}
-                        docker push ${DOCKER_PROD_REPO}:${IMAGE_TAG}
-                        echo "PROD push complete."
-                        """
-                    }
-                }
+                sh "./build.sh"
+            }
+        }
+
+        stage('Push to Prod on Merge') {
+            when {
+                branch 'main'
+            }
+            steps {
+                sh """
+                    TAG=$(date +%Y%m%d%H%M)
+
+                    # Build production image
+                    docker build -t prod-image:$TAG .
+
+                    # Tag for Docker Hub
+                    docker tag prod-image:$TAG $PROD_REPO:$TAG
+                    docker tag prod-image:$TAG $PROD_REPO:latest
+
+                    # Push both tags
+                    docker push $PROD_REPO:$TAG
+                    docker push $PROD_REPO:latest
+                """
             }
         }
 
         stage('Deploy to EC2') {
-            when { branch "main" }
-            steps {
-                sh '''
-                echo "📦 Deploying to EC2 Production Server..."
-                chmod +x deploy.sh
-                ./deploy.sh
-                '''
+            when {
+                branch 'main'
             }
-        }
-    }
-
-    post {
-        success {
-            echo "🎉 Pipeline completed successfully for branch: ${env.BRANCH_NAME}"
-        }
-        failure {
-            echo "❌ Pipeline FAILED — check logs!"
+            steps {
+                sshagent(['ec2-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@15.206.92.52 '
+                            sudo docker pull $PROD_REPO:latest &&
+                            sudo docker stop final-app || true &&
+                            sudo docker rm final-app || true &&
+                            sudo docker run -d --name final-app -p 80:80 $PROD_REPO:latest
+                        '
+                    """
+                }
+            }
         }
     }
 }
