@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DEV_REPO = "balaarasan/dev-final"
-        PROD_REPO = "balaarasan/prod-final"
+        DEV_REPO = "balaarasan12/dev-final"
+        PROD_REPO = "balaarasan12/prod-final"
     }
 
     stages {
@@ -40,7 +40,14 @@ pipeline {
             }
             steps {
                 sshagent(['ec2-key']) {
-                    sh "ssh -o StrictHostKeyChecking=no ubuntu@YOUR_EC2_IP 'bash -s' < deploy.sh latest"
+                    sh """
+                       ssh -o StrictHostKeyChecking=no ubuntu@YOUR_EC2_IP '
+                           sudo docker pull $PROD_REPO:latest &&
+                           sudo docker stop final-app || true &&
+                           sudo docker rm final-app || true &&
+                           sudo docker run -d --name final-app -p 80:80 $PROD_REPO:latest
+                       '
+                    """
                 }
             }
         }
