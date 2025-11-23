@@ -3,11 +3,6 @@ set -e
 
 IMAGE=$1
 
-if [ -z "$IMAGE" ]; then
-  echo "❌ Usage: ./deploy.sh <image-tag>"
-  exit 1
-fi
-
 echo "🚀 Pulling production image..."
 docker pull $IMAGE
 
