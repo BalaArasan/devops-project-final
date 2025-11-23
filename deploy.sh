@@ -11,6 +11,6 @@ docker stop final-app || true
 docker rm final-app || true
 
 echo "🚀 Running new container..."
-docker run -d -p 80:80 --name final-app $IMAGE
+docker run -d --name final-app -p 80:80 $IMAGE
 
 echo "✅ Deployment complete!"
