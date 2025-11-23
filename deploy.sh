@@ -3,6 +3,11 @@ set -e
 
 IMAGE=$1
 
+if [ -z "$IMAGE" ]; then
+  echo "❌ ERROR: No image name passed!"
+  exit 1
+fi
+
 echo "🚀 Pulling production image..."
 docker pull $IMAGE
 
@@ -11,6 +16,6 @@ docker stop final-app || true
 docker rm final-app || true
 
 echo "🚀 Running new container..."
-docker run -d --name final-app -p 80:80 $IMAGE
+docker run -d -p 80:80 --name final-app $IMAGE
 
 echo "✅ Deployment complete!"
