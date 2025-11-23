@@ -27,9 +27,13 @@ pipeline {
             steps {
                 sh """
                    TAG=$(date +%Y%m%d%H%M)
+
                    docker build -t prod-image:$TAG .
                    docker tag prod-image:$TAG $PROD_REPO:$TAG
                    docker push $PROD_REPO:$TAG
+
+                   docker tag prod-image:$TAG $PROD_REPO:latest
+                   docker push $PROD_REPO:latest
                 """
             }
         }
@@ -41,7 +45,7 @@ pipeline {
             steps {
                 sshagent(['ec2-key']) {
                     sh """
-                       ssh -o StrictHostKeyChecking=no ubuntu@YOUR_EC2_IP '
+                       ssh -o StrictHostKeyChecking=no ubuntu@13.204.66.171 '
                            sudo docker pull $PROD_REPO:latest &&
                            sudo docker stop final-app || true &&
                            sudo docker rm final-app || true &&
