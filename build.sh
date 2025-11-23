@@ -6,7 +6,7 @@ TAG=$(date +%Y%m%d%H%M)
 echo "🔧 Building Docker image..."
 docker build -t balaarasan12/dev-final:$TAG .
 
-echo "🔧 Tagging image..."
+echo "🔧 Tagging latest..."
 docker tag balaarasan12/dev-final:$TAG balaarasan12/dev-final:latest
 
 echo "🚀 Pushing to Docker Hub..."
