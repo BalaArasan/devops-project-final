@@ -1,14 +1,21 @@
 #!/bin/bash
+set -e
 
-echo "[DEPLOY] Starting container..."
-docker rm -f devops-react-app 2>/dev/null
+IMAGE="balaarasan12/dev-final:latest"
+CONTAINER="devops-app"
 
+echo "📥 Pulling latest image..."
+docker pull $IMAGE
+
+echo "🛑 Stopping old container (if exists)..."
+docker stop $CONTAINER || true
+docker rm $CONTAINER || true
+
+echo "🚀 Starting new container..."
 docker run -d \
-  -p 3000:80 \
-  --name devops-react-app \
-  bala1224/dev:latest
+  --name $CONTAINER \
+  -p 80:80 \
+  $IMAGE
 
-echo "[DEPLOY] Application deployed successfully!"
-#!/bin/bash
-echo "[deploy] Starting container..."
-docker compose up -d
+echo "✅ Deployment successful!"
+docker ps

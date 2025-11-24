@@ -1,14 +1,18 @@
 #!/bin/bash
+set -e
 
-IMAGE_NAME="bala1224/dev"
-TAG="latest"
+IMAGE_NAME="balaarasan12/dev-final"
+TAG=$(date +%Y%m%d%H%M)
 
-echo "[BUILD] Building Docker image..."
+echo "🔨 Building Docker image..."
 docker build -t $IMAGE_NAME:$TAG .
 
-echo "[BUILD] Pushing image to Docker Hub..."
-docker push $IMAGE_NAME:$TAG
+echo "🏷️ Tagging latest..."
+docker tag $IMAGE_NAME:$TAG $IMAGE_NAME:latest
 
-echo "[BUILD] Completed."#!/bin/bash
-echo "[build] Starting image build..."
-docker build -t balaarasan/dev:latest .
+echo "📤 Pushing to Docker Hub..."
+docker push $IMAGE_NAME:$TAG
+docker push $IMAGE_NAME:latest
+
+echo "✅ Build Completed Successfully!"
+echo "Image: $IMAGE_NAME:$TAG"
