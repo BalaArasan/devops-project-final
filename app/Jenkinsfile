@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                chmod +x build.sh
+                ./build.sh
+                '''
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                sh '''
+                chmod +x deploy.sh
+                ./deploy.sh
+                '''
+            }
+        }
+    }
+}

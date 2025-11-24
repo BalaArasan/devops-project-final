@@ -1,21 +1,21 @@
 #!/bin/bash
 set -e
 
-IMAGE="balaarasan12/dev-final:latest"
-CONTAINER="devops-app"
+IMAGE=$1
 
-echo "📥 Pulling latest image..."
+if [ -z "$IMAGE" ]; then
+  echo "❌ ERROR: No image name passed!"
+  exit 1
+fi
+
+echo "🚀 Pulling image..."
 docker pull $IMAGE
 
-echo "🛑 Stopping old container (if exists)..."
-docker stop $CONTAINER || true
-docker rm $CONTAINER || true
+echo "🛑 Stopping old container..."
+docker stop devops-app || true
+docker rm devops-app || true
 
-echo "🚀 Starting new container..."
-docker run -d \
-  --name $CONTAINER \
-  -p 80:80 \
-  $IMAGE
+echo "🚀 Running new container..."
+docker run -d -p 80:80 --name devops-app $IMAGE
 
-echo "✅ Deployment successful!"
-docker ps
+echo "✅ Deployment complete!"

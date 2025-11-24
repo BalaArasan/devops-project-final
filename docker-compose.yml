@@ -2,8 +2,7 @@ version: '3'
 
 services:
   web:
-    build: .
-    image: balaarasan/dev-final:latest
+    image: balaarasan12/dev-final:latest
     container_name: devops-app
     ports:
       - "3000:80"

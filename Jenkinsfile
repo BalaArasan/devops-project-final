@@ -2,46 +2,37 @@ pipeline {
     agent any
 
     environment {
-        DH_USER = credentials('dockerhub-creds')
+        DEV_REPO = "balaarasan12/dev-final"
+        EC2_IP   = "13.204.66.171"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'dev', url: 'https://github.com/BalaArasan/devops-project-final.git'
             }
         }
 
-        stage('Build & Push Docker Image') {
+        stage('Build Docker Image') {
             steps {
-                sh '''
-                    set -e
-                    echo "$DH_USER_PSW" | docker login -u "$DH_USER_USR" --password-stdin
-                    docker build -t bala1224/dev:latest .
-                    docker push bala1224/dev:latest
-                '''
+                sh "./build.sh"
             }
         }
 
-        stage('Deploy to EC2') {
+        stage('Deploy to EC2 (DEV)') {
+            when {
+                branch 'dev'
+            }
             steps {
-                sshagent(['ec2-ssh-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@43.204.234.83 '
-                            echo "Pulling latest Docker image..."
-                            docker pull bala1224/dev:latest
+                sh """
+                    echo "Deploying DEV image: ${DEV_REPO}:latest"
 
-                            echo "Stopping old container..."
-                            docker rm -f devops-react-app || true
-
-                            echo "Starting new container..."
-                            docker run -d -p 80:80 --name devops-react-app bala1224/dev:latest
-
-                            echo "Deployment complete!"
-                        '
-                    """
-                }
+                    sudo docker pull ${DEV_REPO}:latest
+                    sudo docker stop final-app || true
+                    sudo docker rm final-app || true
+                    sudo docker run -d --name final-app -p 80:80 ${DEV_REPO}:latest
+                """
             }
         }
     }
