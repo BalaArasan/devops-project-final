@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DEV_REPO = "balaarasan12/dev-final"
-        EC2_IP   = "13.204.66.171"
+        DEV_REPO  = "balaarasan12/dev-final"
     }
 
     stages {
@@ -20,29 +19,26 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2 (DEV)') {
-            when {
-                branch 'dev'
+        stage('Push Image to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh """
+                        echo "$PASS" | docker login -u "$USER" --password-stdin
+                        docker push ${DEV_REPO}:latest
+                    """
+                }
             }
+        }
+
+        stage('Deploy to EC2') {
             steps {
                 sh """
-                    echo "Deploying DEV image: ${DEV_REPO}:latest"
-
                     sudo docker pull ${DEV_REPO}:latest
                     sudo docker stop final-app || true
                     sudo docker rm final-app || true
                     sudo docker run -d --name final-app -p 80:80 ${DEV_REPO}:latest
                 """
             }
-        }
-    }
-
-    post {
-        success {
-            echo "Build & Deploy Successful!"
-        }
-        failure {
-            echo "Build or Deploy FAILED!"
         }
     }
 }
